@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArgoCD Generator Simulator</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js" integrity="sha512-CmCVkRlMCj8ozkF+KGJmS17OeQs4/S7xiULNQn5VJN3zCd+h7O2Gc0RSPv33sZqHH3w5QN5gEcnqgv9b2q1SMA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1>⚙️ ArgoCD ApplicationSet Generator Simulator</h1>
+      <p class="subtitle">Visualize como os generators do ArgoCD criam parâmetros e renderizam templates</p>
+    </div>
+    <div class="header-actions">
+      <a href="https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators/" target="_blank" class="btn btn-sm">📖 Docs</a>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <!-- Sidebar: Config -->
+    <aside class="sidebar">
+      <section class="config-section">
+        <h3>📋 Exemplos</h3>
+        <div id="examplesList" class="examples-list">
+          <span class="loading">Carregando exemplos...</span>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="saveCurrentExample()">💾 Salvar como exemplo</button>
+      </section>
+
+      <section class="config-section">
+        <h3>🌐 Clusters Simulados</h3>
+        <p class="hint">Clusters disponíveis para o Cluster Generator</p>
+        <div id="mockClusters">
+          <div class="mock-item">
+            <input type="text" class="cluster-name" value="staging" placeholder="Nome">
+            <input type="text" class="cluster-server" value="https://1.2.3.4" placeholder="Server URL">
+            <input type="text" class="cluster-labels" value="environment=staging" placeholder="labels (k=v,k=v)">
+            <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+          </div>
+          <div class="mock-item">
+            <input type="text" class="cluster-name" value="production" placeholder="Nome">
+            <input type="text" class="cluster-server" value="https://2.4.6.8" placeholder="Server URL">
+            <input type="text" class="cluster-labels" value="environment=prod" placeholder="labels (k=v,k=v)">
+            <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+          </div>
+          <div class="mock-item">
+            <input type="text" class="cluster-name" value="dev" placeholder="Nome">
+            <input type="text" class="cluster-server" value="https://10.0.0.1" placeholder="Server URL">
+            <input type="text" class="cluster-labels" value="environment=dev" placeholder="labels (k=v,k=v)">
+            <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+          </div>
+        </div>
+        <button class="btn btn-xs" onclick="addMockCluster()">+ Adicionar cluster</button>
+      </section>
+
+      <section class="config-section">
+        <h3>📁 Diretórios Git (Simulados)</h3>
+        <p class="hint">Estrutura de diretórios mock para Git Directory Generator</p>
+        <div id="mockDirs">
+          <div class="mock-item"><input type="text" value="apps/argo-workflows" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
+          <div class="mock-item"><input type="text" value="apps/prometheus-operator" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
+          <div class="mock-item"><input type="text" value="infra/nginx-ingress" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
+          <div class="mock-item"><input type="text" value="infra/cert-manager" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
+          <div class="mock-item"><input type="text" value="team-a/app1" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
+          <div class="mock-item"><input type="text" value="team-b/app2" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
+        </div>
+        <button class="btn btn-xs" onclick="addMockDir()">+ Adicionar diretório</button>
+      </section>
+    </aside>
+
+    <!-- Main: Editor + Results -->
+    <main class="main-content">
+      <div class="editor-section">
+        <div class="editor-toolbar">
+          <h3>📝 ApplicationSet YAML</h3>
+          <div class="toolbar-actions">
+            <button class="btn btn-sm" onclick="formatYaml()">↔ Formatar</button>
+            <button class="btn btn-primary btn-sm" onclick="simulate()">▶ Simular</button>
+          </div>
+        </div>
+        <textarea id="yamlEditor" spellcheck="false" placeholder="Cole seu ApplicationSet YAML aqui...">apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: guestbook
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - list:
+      elements:
+        - cluster: engineering-dev
+          url: https://kubernetes.default.svc
+        - cluster: engineering-prod
+          url: https://kubernetes.default.svc
+  template:
+    metadata:
+      name: '{{.cluster}}-guestbook'
+    spec:
+      project: "my-project"
+      source:
+        repoURL: https://github.com/argoproj/argo-cd.git
+        targetRevision: HEAD
+        path: applicationset/examples/list-generator/guestbook/{{.cluster}}
+      destination:
+        server: '{{.url}}'
+        namespace: guestbook</textarea>
+      </div>
+
+      <div id="results" class="results-section" style="display:none">
+        <div class="results-header">
+          <h3>📊 Resultados da Simulação</h3>
+          <div class="results-meta" id="resultsMeta"></div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" data-tab="parameters" onclick="switchTab('parameters')">Parâmetros Gerados</button>
+          <button class="tab" data-tab="rendered" onclick="switchTab('rendered')">Templates Renderizados</button>
+          <button class="tab" data-tab="visual" onclick="switchTab('visual')">Visualização</button>
+        </div>
+
+        <div id="tab-parameters" class="tab-content active">
+          <div class="table-wrapper" id="paramsTable"></div>
+        </div>
+        <div id="tab-rendered" class="tab-content">
+          <div id="renderedContent"></div>
+        </div>
+        <div id="tab-visual" class="tab-content">
+          <div id="visualContent"></div>
+        </div>
+      </div>
+
+      <div id="loading" class="loading-overlay" style="display:none">
+        <div class="spinner"></div>
+        <p>Simulando generators...</p>
+      </div>
+    </main>
+  </div>
+
+  <footer>
+    <p>ArgoCD Generator Simulator — Built with ❤️ for GitOps experimentation</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

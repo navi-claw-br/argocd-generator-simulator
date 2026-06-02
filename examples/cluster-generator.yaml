@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-guestbook
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          environment: staging
+  template:
+    metadata:
+      name: '{{.name}}-guestbook'
+    spec:
+      project: "my-project"
+      source:
+        repoURL: https://github.com/argoproj/argocd-example-apps/
+        targetRevision: HEAD
+        path: guestbook
+      destination:
+        server: '{{.server}}'
+        namespace: guestbook

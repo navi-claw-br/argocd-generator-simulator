@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-git
+spec:
+  goTemplate: true
+  generators:
+    - merge:
+        mergeKeys:
+          - server
+        generators:
+          - clusters:
+              values:
+                kafka: 'true'
+                redis: 'false'
+          - clusters:
+              selector:
+                matchLabels:
+                  use-kafka: 'false'
+              values:
+                kafka: 'false'
+          - list:
+              elements:
+                - server: https://2.4.6.8
+                  values.redis: 'true'
+  template:
+    metadata:
+      name: '{{.name}}'
+    spec:
+      project: '{{index .metadata.labels "environment"}}'
+      source:
+        repoURL: https://github.com/argoproj/argo-cd.git
+        targetRevision: HEAD
+        path: app
+        helm:
+          parameters:
+            - name: kafka
+              value: '{{.values.kafka}}'
+            - name: redis
+              value: '{{.values.redis}}'
+      destination:
+        server: '{{.server}}'
+        namespace: default
