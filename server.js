@@ -133,8 +133,8 @@ function simulateListGenerator(config) {
   return elements;
 }
 
-function simulateClusterGenerator(config) {
-  const clusters = config._mockClusters || [
+function simulateClusterGenerator(config, extraContext = {}) {
+  const clusters = extraContext._mockClusters || [
     { name: 'staging', nameNormalized: 'staging', server: 'https://1.2.3.4', project: 'default', labels: { environment: 'staging', 'argocd.argoproj.io/secret-type': 'cluster' }, annotations: {} },
     { name: 'production', nameNormalized: 'production', server: 'https://2.4.6.8', project: 'default', labels: { environment: 'prod', 'argocd.argoproj.io/secret-type': 'cluster' }, annotations: {} },
     { name: 'dev', nameNormalized: 'dev', server: 'https://10.0.0.1', project: 'default', labels: { environment: 'dev', 'argocd.argoproj.io/secret-type': 'cluster' }, annotations: {} },
@@ -186,11 +186,11 @@ function simulateClusterGenerator(config) {
   });
 }
 
-function simulateGitDirectoryGenerator(config) {
+function simulateGitDirectoryGenerator(config, extraContext = {}) {
   const directories = config.directories || [{ path: '*' }];
   const values = config.values || {};
 
-  const mockStructure = config._mockDirectories || [
+  const mockStructure = extraContext._mockDirectories || [
     { path: 'apps/argo-workflows', basename: 'argo-workflows', segments: ['apps', 'argo-workflows'] },
     { path: 'apps/prometheus-operator', basename: 'prometheus-operator', segments: ['apps', 'prometheus-operator'] },
     { path: 'infra/nginx-ingress', basename: 'nginx-ingress', segments: ['infra', 'nginx-ingress'] },
@@ -238,11 +238,11 @@ function simulateGitDirectoryGenerator(config) {
   });
 }
 
-function simulateGitFileGenerator(config) {
+function simulateGitFileGenerator(config, extraContext = {}) {
   const files = config.files || [{ path: '**/config.json' }];
   const values = config.values || {};
 
-  const mockFiles = config._mockFiles || [
+  const mockFiles = extraContext._mockFiles || [
     { path: 'config/engineering/dev/config.json', content: '{"app": "guestbook", "replicas": 2, "env": "dev"}' },
     { path: 'config/engineering/prod/config.json', content: '{"app": "guestbook", "replicas": 5, "env": "prod"}' },
     { path: 'global.values.yaml', content: 'cpuRequest: 200m\nmemoryLimit: 256Mi\ndebugEnabled: true' },
@@ -294,10 +294,10 @@ function simulateGitFileGenerator(config) {
   return results;
 }
 
-function simulateSCMProviderGenerator(config) {
+function simulateSCMProviderGenerator(config, extraContext = {}) {
   // Mock: simulate discovering repos from an org
   const org = config.organization || config.owner || 'my-org';
-  const mockRepos = config._mockRepos || [
+  const mockRepos = extraContext._mockRepos || [
     { repository: 'frontend-app', url: 'https://github.com/' + org + '/frontend-app.git', branch: 'main' },
     { repository: 'backend-api', url: 'https://github.com/' + org + '/backend-api.git', branch: 'main' },
     { repository: 'infra-tools', url: 'https://github.com/' + org + '/infra-tools.git', branch: 'main' },
@@ -313,10 +313,10 @@ function simulateSCMProviderGenerator(config) {
   }));
 }
 
-function simulatePullRequestGenerator(config) {
+function simulatePullRequestGenerator(config, extraContext = {}) {
   const owner = config.owner || 'my-org';
   const repo = config.repo || 'my-repo';
-  const mockPRs = config._mockPRs || [
+  const mockPRs = extraContext._mockPRs || [
     { number: 42, title: 'feat: add new feature', head_sha: 'abc123', head_branch: 'feat/new-feature', base_branch: 'main', labels: ['enhancement'] },
     { number: 43, title: 'fix: resolve login bug', head_sha: 'def456', head_branch: 'fix/login-bug', base_branch: 'main', labels: ['bug'] },
     { number: 44, title: 'chore: update deps', head_sha: 'ghi789', head_branch: 'chore/update-deps', base_branch: 'main', labels: ['dependencies'] },
