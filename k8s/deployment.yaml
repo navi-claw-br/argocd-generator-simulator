@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: simulator
-        image: nebbie/gen-simulator:latest
+        image: ghcr.io/navi-claw-br/argocd-generator-simulator:latest
         ports:
         - containerPort: 3000
           name: http
