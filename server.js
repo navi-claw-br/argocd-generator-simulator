@@ -47,10 +47,22 @@ function renderGoTemplate(tmpl, params) {
       return '';
     });
 
-    // Handle {{index .path.segments n}} or {{index .foo n}}
+    // Handle {{index .path.segments n}} — numeric index
     result = result.replace(/\{\{-?\s*index\s+(\.\S+)\s+(\d+)\s*-?\}\}/g, (match, arrExpr, idx) => {
       const arr = resolveField(arrExpr, params);
       if (Array.isArray(arr)) return String(arr[parseInt(idx)] ?? '');
+      return '';
+    });
+
+    // Handle {{index .obj "key"}} — string key index
+    result = result.replace(/\{\{-?\s*index\s+(\.\S+)\s+"([^"]+)"\s*-?\}\}/g, (match, objExpr, key) => {
+      const obj = resolveField(objExpr, params);
+      if (obj && typeof obj === 'object') {
+        const val = obj[key];
+        if (val === undefined) return '<no value>';
+        if (typeof val === 'object') return JSON.stringify(val);
+        return String(val);
+      }
       return '';
     });
 
@@ -166,9 +178,9 @@ function simulateClusterGenerator(config) {
         annotations: { ...c.annotations },
       },
     };
-    // Add values field overrides
+    // Add values field overrides with Go template rendering
     Object.entries(values).forEach(([k, v]) => {
-      params[`values.${k}`] = v;
+      params[`values.${k}`] = renderGoTemplate(v, params);
     });
     return params;
   });

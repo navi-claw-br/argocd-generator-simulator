@@ -1,0 +1,44 @@
+# Cenário: Git Directory Generator com apps organizadas por tier/categoria
+# Estrutura de diretórios:
+#   apps/
+#     tier1/
+#       des/frontend-api/
+#       hom/frontend-api/
+#       prd/frontend-api/
+#     tier2/
+#       des/backend-svc/
+#       hom/backend-svc/
+#       prd/backend-svc/
+#     tier3/
+#       des/database/
+#       hom/database/
+#       prd/database/
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-do-git
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - git:
+      repoURL: https://github.com/example/applications.git
+      revision: HEAD
+      directories:
+      - path: apps/*
+  template:
+    metadata:
+      name: '{{.path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/example/applications.git
+        targetRevision: HEAD
+        path: '{{.path.path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

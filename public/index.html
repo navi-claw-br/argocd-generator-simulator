@@ -31,7 +31,7 @@
 
       <section class="config-section">
         <h3>🌐 Clusters Simulados</h3>
-        <p class="hint">Clusters disponíveis para o Cluster Generator</p>
+        <p class="hint">Edite os clusters que serão usados pelo Cluster Generator</p>
         <div id="mockClusters">
           <div class="mock-item">
             <input type="text" class="cluster-name" value="staging" placeholder="Nome">
@@ -80,7 +80,7 @@
             <button class="btn btn-primary btn-sm" onclick="simulate()">▶ Simular</button>
           </div>
         </div>
-        <textarea id="yamlEditor" spellcheck="false" placeholder="Cole seu ApplicationSet YAML aqui...">apiVersion: argoproj.io/v1alpha1
+        <textarea id="yamlEditor" spellcheck="false" placeholder="Cole seu ApplicationSet YAML aqui..." style="height:300px">apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: guestbook
@@ -109,26 +109,7 @@ spec:
       </div>
 
       <div id="results" class="results-section" style="display:none">
-        <div class="results-header">
-          <h3>📊 Resultados da Simulação</h3>
-          <div class="results-meta" id="resultsMeta"></div>
-        </div>
-
-        <div class="tabs">
-          <button class="tab active" data-tab="parameters" onclick="switchTab('parameters')">Parâmetros Gerados</button>
-          <button class="tab" data-tab="rendered" onclick="switchTab('rendered')">Templates Renderizados</button>
-          <button class="tab" data-tab="visual" onclick="switchTab('visual')">Visualização</button>
-        </div>
-
-        <div id="tab-parameters" class="tab-content active">
-          <div class="table-wrapper" id="paramsTable"></div>
-        </div>
-        <div id="tab-rendered" class="tab-content">
-          <div id="renderedContent"></div>
-        </div>
-        <div id="tab-visual" class="tab-content">
-          <div id="visualContent"></div>
-        </div>
+        <div id="resultsInner"></div>
       </div>
 
       <div id="loading" class="loading-overlay" style="display:none">

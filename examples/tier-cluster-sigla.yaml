@@ -1,0 +1,60 @@
+# Cenário: Cluster Generator com labels tier + sigla
+# Usando Merge Generator para sobrepor valores específicos
+# Clusters têm label tier=tier1/2/3
+# Alguns clusters têm sigla=xyz para identificar time
+# MergeKeys = server + merge por valores
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-por-tier
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - merge:
+      mergeKeys:
+        - server
+      generators:
+        # Base: todos os clusters com valores default
+        - clusters:
+            selector:
+              matchLabels:
+                argocd.argoproj.io/secret-type: cluster
+            values:
+              categoria: des
+              sigla: default
+        # Override: clusters tier2 e tier3 vão para categoria hom
+        - list:
+            elements:
+              - server: https://k8s-cluster-b.local
+                values.categoria: hom
+              - server: https://k8s-cluster-c.local
+                values.categoria: hom
+        # Override: cluster com sigla recebe categoria prd
+        - clusters:
+            selector:
+              matchExpressions:
+                - key: sigla
+                  operator: Exists
+            values:
+              categoria: prd
+  template:
+    metadata:
+      name: '{{.name}}-{{.values.categoria}}'
+      labels:
+        tier: '{{index .metadata.labels "tier"}}'
+        sigla: '{{index .metadata.labels "sigla"}}'
+        categoria: '{{.values.categoria}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/example/applications.git
+        targetRevision: HEAD
+        path: 'apps/{{index .metadata.labels "tier"}}/{{.values.categoria}}'
+      destination:
+        server: '{{.server}}'
+        namespace: '{{.name}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

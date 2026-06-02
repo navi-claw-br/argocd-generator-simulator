@@ -173,6 +173,8 @@ th {
   position: sticky; top: 0;
 }
 tr:hover { background: rgba(255,255,255,0.02); }
+.hl-cell { background: rgba(210,153,34,0.1); }
+.hl-cell code { color: var(--warning); font-weight: 600; }
 
 /* Rendered template cards */
 .rendered-card {

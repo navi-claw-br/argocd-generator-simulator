@@ -1,6 +1,6 @@
-/* ─── Frontend JS ───────────────────────────────────────────── */
+/* ─── Frontend JS — ArgoCD Generator Simulator ────────────── */
 
-// Load examples
+// ─── Load examples ──────────────────────────────────────────
 async function loadExamples() {
   try {
     const res = await fetch('/api/examples');
@@ -13,6 +13,8 @@ async function loadExamples() {
       el.textContent = name.replace(/-/g, ' ');
       el.onclick = () => {
         document.getElementById('yamlEditor').value = content;
+        // Also update mock clusters and dirs based on the selected example
+        updateMockDataForExample(name);
         simulate();
       };
       list.appendChild(el);
@@ -23,7 +25,60 @@ async function loadExamples() {
 }
 loadExamples();
 
-// Simulate
+// ─── Update mock data based on selected example ─────────────
+function updateMockDataForExample(exampleName) {
+  if (exampleName.includes('tier') || exampleName.includes('sigla')) {
+    // Set tier-based clusters
+    document.getElementById('mockClusters').innerHTML = `
+      <div class="mock-item">
+        <input type="text" class="cluster-name" value="cluster-a" placeholder="Nome">
+        <input type="text" class="cluster-server" value="https://k8s-cluster-a.local" placeholder="Server URL">
+        <input type="text" class="cluster-labels" value="tier=tier1,sigla=xyz" placeholder="labels (k=v,k=v)">
+        <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+      </div>
+      <div class="mock-item">
+        <input type="text" class="cluster-name" value="cluster-b" placeholder="Nome">
+        <input type="text" class="cluster-server" value="https://k8s-cluster-b.local" placeholder="Server URL">
+        <input type="text" class="cluster-labels" value="tier=tier2" placeholder="labels (k=v,k=v)">
+        <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+      </div>
+      <div class="mock-item">
+        <input type="text" class="cluster-name" value="cluster-c" placeholder="Nome">
+        <input type="text" class="cluster-server" value="https://k8s-cluster-c.local" placeholder="Server URL">
+        <input type="text" class="cluster-labels" value="tier=tier3" placeholder="labels (k=v,k=v)">
+        <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+      </div>
+      <div class="mock-item">
+        <input type="text" class="cluster-name" value="cluster-d" placeholder="Nome">
+        <input type="text" class="cluster-server" value="https://k8s-cluster-d.local" placeholder="Server URL">
+        <input type="text" class="cluster-labels" value="tier=tier1,sigla=abc" placeholder="labels (k=v,k=v)">
+        <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+      </div>`;
+  } else {
+    // Default clusters
+    document.getElementById('mockClusters').innerHTML = `
+      <div class="mock-item">
+        <input type="text" class="cluster-name" value="staging" placeholder="Nome">
+        <input type="text" class="cluster-server" value="https://1.2.3.4" placeholder="Server URL">
+        <input type="text" class="cluster-labels" value="environment=staging" placeholder="labels (k=v,k=v)">
+        <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+      </div>
+      <div class="mock-item">
+        <input type="text" class="cluster-name" value="production" placeholder="Nome">
+        <input type="text" class="cluster-server" value="https://2.4.6.8" placeholder="Server URL">
+        <input type="text" class="cluster-labels" value="environment=prod" placeholder="labels (k=v,k=v)">
+        <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+      </div>
+      <div class="mock-item">
+        <input type="text" class="cluster-name" value="dev" placeholder="Nome">
+        <input type="text" class="cluster-server" value="https://10.0.0.1" placeholder="Server URL">
+        <input type="text" class="cluster-labels" value="environment=dev" placeholder="labels (k=v,k=v)">
+        <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
+      </div>`;
+  }
+}
+
+// ─── Simulate ───────────────────────────────────────────────
 async function simulate() {
   const yamlContent = document.getElementById('yamlEditor').value;
   if (!yamlContent.trim()) return;
@@ -94,17 +149,40 @@ async function simulate() {
   }
 }
 
-// Results display
+// ─── Show Results ───────────────────────────────────────────
 function showResults(data) {
   const results = document.getElementById('results');
+  const resultsInner = document.getElementById('resultsInner');
+  if (!resultsInner) return;
+
+  // Ensure resultsInner has the tab structure
+  resultsInner.innerHTML = `
+    <div class="results-header">
+      <h3>📊 Resultados da Simulação</h3>
+      <div class="results-meta" id="resultsMeta"></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="parameters" onclick="switchTab('parameters')">Parâmetros Gerados</button>
+      <button class="tab" data-tab="rendered" onclick="switchTab('rendered')">Templates Renderizados</button>
+      <button class="tab" data-tab="visual" onclick="switchTab('visual')">Visualização</button>
+    </div>
+    <div id="tab-parameters" class="tab-content active">
+      <div class="table-wrapper"><table id="paramsTable"><tbody></tbody></table></div>
+    </div>
+    <div id="tab-rendered" class="tab-content">
+      <div id="renderedContent"></div>
+    </div>
+    <div id="tab-visual" class="tab-content">
+      <div id="visualContent"></div>
+    </div>
+  `;
+
   results.style.display = 'block';
 
   // Meta
   const meta = document.getElementById('resultsMeta');
-  meta.innerHTML = `
-    <span class="gen-badge ${data.types[0]}">${data.types.join(', ')}</span>
-    <span style="margin-left:0.5rem">${data.count} aplicações geradas</span>
-  `;
+  const badges = data.types.map(t => `<span class="gen-badge ${t}">${t}</span>`).join(' ');
+  meta.innerHTML = `${badges} <span style="margin-left:0.5rem">${data.count} aplicações geradas</span>`;
 
   // Parameters tab
   renderParamsTable(data.parameters);
@@ -118,24 +196,36 @@ function showResults(data) {
   // Auto-show first tab
   switchTab('parameters');
 
-  // Scroll to results
+  // Scroll
   results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderParamsTable(params) {
   const container = document.getElementById('paramsTable');
+  if (!container) return;
 
   if (!params.length) {
     container.innerHTML = '<p class="text-muted">Nenhum parâmetro gerado.</p>';
     return;
   }
 
-  // Collect all unique keys
+  // Collect keys, prioritize important ones
   const allKeys = new Set();
-  params.forEach(p => Object.keys(p).forEach(k => allKeys.add(k)));
-  const keys = Array.from(allKeys).filter(k => !k.startsWith('_'));
+  const priorityKeys = ['name', 'server', 'tier', 'cluster', 'url', 'path.basename', 'path.path',
+    'values.tier', 'values.categoria', 'values.sigla', 'sigla',
+    'metadata.labels.tier', 'metadata.labels.sigla'];
 
-  let html = '<table><thead><tr>';
+  // Add priority keys first if they exist
+  priorityKeys.forEach(k => {
+    if (params.some(p => p[k] !== undefined)) allKeys.add(k);
+  });
+  // Then add remaining keys
+  params.forEach(p => Object.keys(p).forEach(k => {
+    if (!allKeys.has(k) && !k.startsWith('_')) allKeys.add(k);
+  }));
+  const keys = Array.from(allKeys);
+
+  let html = '<div style="overflow-x:auto"><table><thead><tr>';
   keys.forEach(k => { html += `<th>${escapeHtml(k)}</th>`; });
   html += '</tr></thead><tbody>';
   params.forEach((p, i) => {
@@ -144,16 +234,19 @@ function renderParamsTable(params) {
       const val = p[k];
       const display = val === undefined ? '' :
         typeof val === 'object' ? JSON.stringify(val) : String(val);
-      html += `<td title="${escapeHtml(k)}"><code>${escapeHtml(display)}</code></td>`;
+      // Highlight sigla/tier columns
+      const cls = (k === 'sigla' || k.includes('tier') || k === 'metadata.labels.sigla' || k === 'metadata.labels.tier') ? ' class="hl-cell"' : '';
+      html += `<td${cls} title="${escapeHtml(k)}"><code>${escapeHtml(display)}</code></td>`;
     });
     html += '</tr>';
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   container.innerHTML = html;
 }
 
 function renderRenderedTemplates(rendered) {
   const container = document.getElementById('renderedContent');
+  if (!container) return;
 
   if (!rendered || !rendered.length) {
     container.innerHTML = '<p class="text-muted">Nenhum template para renderizar.</p>';
@@ -176,10 +269,11 @@ function renderRenderedTemplates(rendered) {
 
 function renderVisualization(data) {
   const container = document.getElementById('visualContent');
+  if (!container) return;
+
   container.innerHTML = '<div class="generator-tree"></div>';
   const tree = container.querySelector('.generator-tree');
 
-  // Re-parse the YAML to get generator structure
   try {
     const doc = yaml.load(document.getElementById('yamlEditor').value);
     const generators = doc.spec.generators || [];
@@ -200,7 +294,6 @@ function renderGeneratorTree(generators, allParams, depth = 0) {
   generators.forEach((gen, idx) => {
     const type = Object.keys(gen)[0];
     const config = gen[type];
-    const indent = '  '.repeat(depth);
 
     html += `<div class="generator-node" style="margin-left:${depth * 1.5}rem">`;
     html += `<div class="node-header">
@@ -251,19 +344,20 @@ function renderGeneratorTree(generators, allParams, depth = 0) {
 
     html += '</div>';
   });
-
   return html;
 }
 
-// Tab switching
+// ─── Tab switching ───────────────────────────────────────────
 function switchTab(tabName) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-  document.getElementById(`tab-${tabName}`).classList.add('active');
+  const tabBtn = document.querySelector(`[data-tab="${tabName}"]`);
+  const tabContent = document.getElementById(`tab-${tabName}`);
+  if (tabBtn) tabBtn.classList.add('active');
+  if (tabContent) tabContent.classList.add('active');
 }
 
-// Helpers
+// ─── Helpers ─────────────────────────────────────────────────
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -275,15 +369,32 @@ function escapeHtml(str) {
 
 function showError(msg) {
   const results = document.getElementById('results');
+  const resultsInner = document.getElementById('resultsInner');
   results.style.display = 'block';
-  results.innerHTML = `
-    <div style="background:rgba(248,81,73,0.1);border:1px solid var(--danger);border-radius:8px;padding:1rem;margin:1rem 0">
-      <h3 style="color:var(--danger);margin-bottom:0.5rem">❌ Erro na Simulação</h3>
-      <pre style="font-family:var(--font-mono);font-size:0.8rem;white-space:pre-wrap">${escapeHtml(msg)}</pre>
-    </div>`;
+
+  if (resultsInner) {
+    // Keep the tab structure intact, just fill params tab with error
+    resultsInner.innerHTML = `
+      <div class="results-header">
+        <h3>📊 Resultados da Simulação</h3>
+        <div class="results-meta"><span class="gen-badge list" style="background:rgba(248,81,73,0.2);color:var(--danger)">erro</span></div>
+      </div>
+      <div style="background:rgba(248,81,73,0.1);border:1px solid var(--danger);border-radius:8px;padding:1rem;margin:0.5rem 0">
+        <h3 style="color:var(--danger);margin-bottom:0.5rem">❌ Erro na Simulação</h3>
+        <pre style="font-family:var(--font-mono);font-size:0.8rem;white-space:pre-wrap">${escapeHtml(msg)}</pre>
+      </div>`;
+  } else {
+    results.innerHTML = `
+      <div style="background:rgba(248,81,73,0.1);border:1px solid var(--danger);border-radius:8px;padding:1rem;margin:1rem 0">
+        <h3 style="color:var(--danger);margin-bottom:0.5rem">❌ Erro na Simulação</h3>
+        <pre style="font-family:var(--font-mono);font-size:0.8rem;white-space:pre-wrap">${escapeHtml(msg)}</pre>
+      </div>`;
+  }
+
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Format YAML
+// ─── Format YAML ─────────────────────────────────────────────
 function formatYaml() {
   try {
     const doc = yaml.load(document.getElementById('yamlEditor').value);
@@ -293,7 +404,7 @@ function formatYaml() {
   }
 }
 
-// Save current as example
+// ─── Save example ────────────────────────────────────────────
 async function saveCurrentExample() {
   const name = prompt('Nome do exemplo:');
   if (!name) return;
@@ -314,7 +425,7 @@ async function saveCurrentExample() {
   }
 }
 
-// Mock cluster management
+// ─── Mock data management ────────────────────────────────────
 function addMockCluster() {
   const container = document.getElementById('mockClusters');
   const div = document.createElement('div');
@@ -336,12 +447,9 @@ function addMockDir() {
   container.appendChild(div);
 }
 
-// Keyboard shortcut: Ctrl+Enter to simulate
+// ─── Keyboard shortcut ───────────────────────────────────────
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     simulate();
   }
 });
-
-// Auto-load on startup
-setTimeout(simulate, 500);

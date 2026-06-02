@@ -1,0 +1,50 @@
+# Cenário: Merge Generator com fallback default tier3/des
+# Estratégia: se um cluster não tiver tier definido, vai como tier3
+# Se não tiver sigla, vai como categoria=des
+# MergeKeys = server para combinar configurações
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: merge-fallback-default
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - merge:
+      mergeKeys:
+        - server
+      generators:
+        # Generator 1: Base - todos os clusters
+        - clusters:
+            selector:
+              matchLabels:
+                argocd.argoproj.io/secret-type: cluster
+        # Generator 2: Default para quem não tem tier - assume tier3/des
+        - list:
+            elements:
+              - server: https://kubernetes.default.svc
+                values.tier: tier3
+                values.categoria: des
+        # Generator 3: Clusters com label tier recebem tier e categoria
+        - clusters:
+            selector:
+              matchExpressions:
+                - key: tier
+                  operator: Exists
+            values:
+              categoria: des
+  template:
+    metadata:
+      name: '{{.name}}'
+      labels:
+        tier: '{{.values.tier}}'
+        categoria: '{{.values.categoria}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/example/applications.git
+        targetRevision: HEAD
+        path: 'apps/{{.values.tier}}/{{.values.categoria}}'
+      destination:
+        server: '{{.server}}'
+        namespace: '{{.name}}'

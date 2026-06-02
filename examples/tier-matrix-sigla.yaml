@@ -1,0 +1,49 @@
+# Cenário: Matrix Generator combinando Git dirs + Clusters com sigla
+# Matrix: cada app (via Git) × cada cluster (via Cluster Generator)
+# Clusters que têm sigla recebem um path específico
+# Clusters sem sigla seguem o path padrão tier/categoria
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: matrix-tier-sigla
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - matrix:
+      generators:
+        # Child 1: Git directory - descobre apps nos diretórios
+        - git:
+            repoURL: https://github.com/example/applications.git
+            revision: HEAD
+            directories:
+            - path: apps/*
+            values:
+              tier: '{{index .path.segments 1}}'
+              categoria: '{{index .path.segments 2}}'
+        # Child 2: Cluster generator - encontra clusters por tier
+        - clusters:
+            selector:
+              matchLabels:
+                argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: '{{.path.basename}}-{{.name}}'
+      labels:
+        app: '{{.path.basename}}'
+        cluster: '{{.name}}'
+        tier: '{{.values.tier}}'
+        sigla: '{{index .metadata.labels "sigla"}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/example/applications.git
+        targetRevision: HEAD
+        path: '{{.path.path}}'
+      destination:
+        server: '{{.server}}'
+        namespace: '{{.name}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

@@ -1,0 +1,82 @@
+# Cenário: Distribuição por Tiers (List Generator)
+# 3 tiers × 3 categorias = 9 combinações
+# Cada app recebe tier + categoria como parâmetros
+# Útil para ver a distribuição completa em uma matriz fixa
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-por-tier
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - list:
+      elements:
+        # tier1
+        - app: frontend-api
+          tier: tier1
+          categoria: des
+          sigla: ""
+          replicas: "1"
+        - app: frontend-api
+          tier: tier1
+          categoria: hom
+          sigla: ""
+          replicas: "2"
+        - app: frontend-api
+          tier: tier1
+          categoria: prd
+          sigla: ""
+          replicas: "5"
+        # tier2
+        - app: backend-svc
+          tier: tier2
+          categoria: des
+          sigla: ""
+          replicas: "1"
+        - app: backend-svc
+          tier: tier2
+          categoria: hom
+          sigla: ""
+          replicas: "2"
+        - app: backend-svc
+          tier: tier2
+          categoria: prd
+          sigla: ""
+          replicas: "3"
+        # tier3
+        - app: database
+          tier: tier3
+          categoria: des
+          sigla: ""
+          replicas: "1"
+        - app: database
+          tier: tier3
+          categoria: hom
+          sigla: ""
+          replicas: "1"
+        - app: database
+          tier: tier3
+          categoria: prd
+          sigla: ""
+          replicas: "3"
+  template:
+    metadata:
+      name: '{{.app}}-{{.tier}}-{{.categoria}}'
+      labels:
+        app: '{{.app}}'
+        tier: '{{.tier}}'
+        categoria: '{{.categoria}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/example/applications.git
+        targetRevision: HEAD
+        path: 'apps/{{.tier}}/{{.categoria}}/{{.app}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.tier}}-{{.categoria}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
