@@ -19,58 +19,72 @@
   </header>
 
   <div class="app-layout">
-    <!-- Sidebar: Config -->
     <aside class="sidebar">
+      <!-- Examples -->
       <section class="config-section">
         <h3>📋 Exemplos</h3>
         <div id="examplesList" class="examples-list">
           <span class="loading">Carregando exemplos...</span>
         </div>
-        <button class="btn btn-sm btn-secondary" onclick="saveCurrentExample()">💾 Salvar como exemplo</button>
+        <button class="btn btn-sm btn-secondary" onclick="saveCurrentExample()">💾 Salvar</button>
       </section>
 
+      <!-- Parameterize -->
+      <section class="config-section" id="paramConfig">
+        <h3>📊 Parametrização</h3>
+        <p class="hint">Configure o cenário e clique <strong>"Gerar"</strong></p>
+        <div class="param-grid">
+          <label>Clusters</label>
+          <input type="number" id="paramClusterCount" value="6" min="1" max="50" step="1">
+
+          <label>Aplicações (apps)</label>
+          <input type="number" id="paramAppCount" value="9" min="1" max="100" step="1">
+
+          <label>Tiers</label>
+          <select id="paramTierList">
+            <option value="tier1,tier2,tier3">tier1, tier2, tier3</option>
+            <option value="tier1,tier2">tier1, tier2</option>
+            <option value="tier1,tier2,tier3,tier4">tier1..tier4</option>
+          </select>
+
+          <label>Categorias</label>
+          <select id="paramCatList">
+            <option value="des,hom,prd">des, hom, prd</option>
+            <option value="dev,stg,prd">dev, stg, prd</option>
+            <option value="dev,hom,stg,prd">dev, hom, stg, prd</option>
+          </select>
+
+          <label>% clusters c/ sigla</label>
+          <input type="range" id="paramSiglaPct" value="33" min="0" max="100" step="5">
+          <span class="range-val" id="paramSiglaPctVal">33%</span>
+
+          <label>Prefixo sigla</label>
+          <input type="text" id="paramSiglaPrefix" value="sig-" placeholder="sig-">
+
+          <label>Cluster prefixo</label>
+          <input type="text" id="paramClusterPrefix" value="cluster-" placeholder="cluster-">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="gerarCenario()" style="margin-top:0.5rem;width:100%">🔄 Gerar Cenário</button>
+      </section>
+
+      <!-- Mock Clusters -->
       <section class="config-section">
         <h3>🌐 Clusters Simulados</h3>
-        <p class="hint">Edite os clusters que serão usados pelo Cluster Generator</p>
-        <div id="mockClusters">
-          <div class="mock-item">
-            <input type="text" class="cluster-name" value="staging" placeholder="Nome">
-            <input type="text" class="cluster-server" value="https://1.2.3.4" placeholder="Server URL">
-            <input type="text" class="cluster-labels" value="environment=staging" placeholder="labels (k=v,k=v)">
-            <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
-          </div>
-          <div class="mock-item">
-            <input type="text" class="cluster-name" value="production" placeholder="Nome">
-            <input type="text" class="cluster-server" value="https://2.4.6.8" placeholder="Server URL">
-            <input type="text" class="cluster-labels" value="environment=prod" placeholder="labels (k=v,k=v)">
-            <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
-          </div>
-          <div class="mock-item">
-            <input type="text" class="cluster-name" value="dev" placeholder="Nome">
-            <input type="text" class="cluster-server" value="https://10.0.0.1" placeholder="Server URL">
-            <input type="text" class="cluster-labels" value="environment=dev" placeholder="labels (k=v,k=v)">
-            <button class="btn-icon" onclick="this.parentElement.remove()">✕</button>
-          </div>
-        </div>
+        <p class="hint">Editáveis — alterados pelo "Gerar Cenário"</p>
+        <div id="mockClusters"></div>
         <button class="btn btn-xs" onclick="addMockCluster()">+ Adicionar cluster</button>
       </section>
 
+      <!-- Mock Dirs -->
       <section class="config-section">
         <h3>📁 Diretórios Git (Simulados)</h3>
-        <p class="hint">Estrutura de diretórios mock para Git Directory Generator</p>
-        <div id="mockDirs">
-          <div class="mock-item"><input type="text" value="apps/argo-workflows" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
-          <div class="mock-item"><input type="text" value="apps/prometheus-operator" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
-          <div class="mock-item"><input type="text" value="infra/nginx-ingress" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
-          <div class="mock-item"><input type="text" value="infra/cert-manager" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
-          <div class="mock-item"><input type="text" value="team-a/app1" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
-          <div class="mock-item"><input type="text" value="team-b/app2" placeholder="path"><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
-        </div>
+        <p class="hint">Editáveis — alterados pelo "Gerar Cenário"</p>
+        <div id="mockDirs"></div>
         <button class="btn btn-xs" onclick="addMockDir()">+ Adicionar diretório</button>
       </section>
     </aside>
 
-    <!-- Main: Editor + Results -->
+    <!-- Main -->
     <main class="main-content">
       <div class="editor-section">
         <div class="editor-toolbar">
@@ -80,32 +94,7 @@
             <button class="btn btn-primary btn-sm" onclick="simulate()">▶ Simular</button>
           </div>
         </div>
-        <textarea id="yamlEditor" spellcheck="false" placeholder="Cole seu ApplicationSet YAML aqui..." style="height:300px">apiVersion: argoproj.io/v1alpha1
-kind: ApplicationSet
-metadata:
-  name: guestbook
-  namespace: argocd
-spec:
-  goTemplate: true
-  generators:
-  - list:
-      elements:
-        - cluster: engineering-dev
-          url: https://kubernetes.default.svc
-        - cluster: engineering-prod
-          url: https://kubernetes.default.svc
-  template:
-    metadata:
-      name: '{{.cluster}}-guestbook'
-    spec:
-      project: "my-project"
-      source:
-        repoURL: https://github.com/argoproj/argo-cd.git
-        targetRevision: HEAD
-        path: applicationset/examples/list-generator/guestbook/{{.cluster}}
-      destination:
-        server: '{{.url}}'
-        namespace: guestbook</textarea>
+        <textarea id="yamlEditor" spellcheck="false" placeholder="Cole seu ApplicationSet YAML aqui..." style="height:260px"></textarea>
       </div>
 
       <div id="results" class="results-section" style="display:none">
