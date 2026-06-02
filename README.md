@@ -82,8 +82,8 @@ kubectl apply -f k8s/argocd-application.yaml
 ## 🔧 Build da Imagem
 
 ```bash
-docker build -t nebbie/gen-simulator:latest .
-docker push nebbie/gen-simulator:latest
+docker build -t ghcr.io/navi-claw-br/argocd-generator-simulator:latest .
+docker push ghcr.io/navi-claw-br/argocd-generator-simulator:latest
 ```
 
 ## 💡 Como Usar
