@@ -256,12 +256,25 @@ function renderRenderedTemplates(rendered) {
   let html = '';
   rendered.forEach((item, i) => {
     const appName = item.rendered?.metadata?.name || `App #${i + 1}`;
+    // Use server-side YAML when available, otherwise fallback to JSON
+    let yamlStr = item.renderedYaml;
+    if (!yamlStr) {
+      try {
+        if (typeof yaml !== 'undefined' && yaml.dump) {
+          yamlStr = yaml.dump(item.rendered);
+        } else {
+          yamlStr = JSON.stringify(item.rendered, null, 2);
+        }
+      } catch (e) {
+        yamlStr = JSON.stringify(item.rendered, null, 2);
+      }
+    }
     html += `<div class="rendered-card">
       <div class="card-header">
         <span class="card-title">${escapeHtml(appName)}</span>
         <span class="card-meta">#${i + 1}</span>
       </div>
-      <pre>${escapeHtml(yaml.dump(item.rendered))}</pre>
+      <pre>${escapeHtml(yamlStr)}</pre>
     </div>`;
   });
   container.innerHTML = html;
@@ -397,8 +410,14 @@ function showError(msg) {
 // ─── Format YAML ─────────────────────────────────────────────
 function formatYaml() {
   try {
+    if (typeof yaml === 'undefined' || !yaml.load) {
+      alert('Biblioteca YAML não carregada. Tente recarregar a página.');
+      return;
+    }
     const doc = yaml.load(document.getElementById('yamlEditor').value);
-    document.getElementById('yamlEditor').value = yaml.dump(doc, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false });
+    if (typeof yaml.dump === 'function') {
+      document.getElementById('yamlEditor').value = yaml.dump(doc, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false });
+    }
   } catch (e) {
     alert('Erro ao formatar YAML: ' + e.message);
   }

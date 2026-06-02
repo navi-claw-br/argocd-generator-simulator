@@ -478,11 +478,18 @@ app.post('/api/simulate', (req, res) => {
     // Detect generator types used
     const types = doc.spec.generators.map(g => Object.keys(g)[0]).filter(Boolean);
 
+    // Also produce YAML dump of each rendered template (so client doesn't need js-yaml)
+    const renderedYaml = rendered.map(r => ({
+      params: r.params,
+      renderedYaml: yaml.dump(r.rendered, { indent: 2, lineWidth: -1, noRefs: true, sortKeys: false })
+    }));
+
     res.json({
       types: [...new Set(types)],
       count: params.length,
       parameters: params,
       renderedTemplates: rendered,
+      renderedYaml: renderedYaml,
     });
 
   } catch (e) {
