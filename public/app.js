@@ -407,7 +407,9 @@ function renderVisualization(data) {
   container.innerHTML = '<div class="generator-tree"></div>';
   const tree = container.querySelector('.generator-tree');
   try {
+    if (typeof yaml === 'undefined') { tree.innerHTML = '<p style="color:var(--text-muted)">Biblioteca YAML não carregada.</p>'; return; }
     const doc = yaml.load(document.getElementById('yamlEditor').value);
+    if (!doc || !doc.spec) { tree.innerHTML = '<p style="color:var(--text-muted)">YAML inválido ou incompleto para visualização.</p>'; return; }
     const gens = doc.spec.generators || [];
     let html = '<div style="text-align:center;margin-bottom:1rem;font-size:0.8rem;color:var(--text-muted)">'
       + `🔄 <strong>${data.count}</strong> apps via <strong>${data.types.join(', ')}</strong></div>`;
