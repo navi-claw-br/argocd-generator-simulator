@@ -528,6 +528,19 @@ app.get('/api/examples', (req, res) => {
   res.json(examples);
 });
 
+// Parse YAML and return generator structure for tree visualization (no CDN needed)
+app.post('/api/parse-yaml', (req, res) => {
+  try {
+    const { yaml: yamlContent } = req.body;
+    if (!yamlContent) return res.status(400).json({ error: 'YAML content required' });
+    const doc = yaml.load(yamlContent);
+    if (!doc || !doc.spec) return res.json({ generators: [] });
+    res.json({ generators: doc.spec.generators || [] });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 // Save a user's YAML as a new example
 app.post('/api/examples', (req, res) => {
   const { name, content } = req.body;

@@ -101,10 +101,21 @@ function gerarCenario() {
 
 // ── Generate starter YAML ─────────────────────────────────
 function generateStarterYaml(clusterNames, tiers, cats) {
-  const elements = clusterNames.map((name, i) => {
-    const tier = tiers[i % tiers.length];
-    return `        - cluster: ${name}\n          url: https://k8s-${name}.local\n          tier: ${tier}`;
-  }).join('\n');
+  const nClusters = clusterNames.length;
+  const nApps = parseInt(document.getElementById('paramAppCount').value) || 9;
+  const nTiers = tiers.length;
+  const nCats = cats.length;
+
+  // Generate one element per app, cycling through clusters
+  const elements = [];
+  for (let i = 0; i < nApps; i++) {
+    const clName = clusterNames[i % nClusters];
+    const tier = tiers[i % nTiers];
+    const cat = cats[Math.floor(i / nTiers) % nCats];
+    const appId = Math.floor(i / (nTiers * nCats)) + 1;
+    const app = `app-${String(appId).padStart(2, '0')}`;
+    elements.push(`        - app: ${app}\n          cluster: ${clName}\n          tier: ${tier}\n          categoria: ${cat}\n          url: https://k8s-${clName}.local`);
+  }
 
   return `apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -115,16 +126,20 @@ spec:
   generators:
   - list:
       elements:
-${elements}
+${elements.join('\n')}
   template:
     metadata:
-      name: '{{.cluster}}-guestbook'
+      name: '{{.app}}-{{.cluster}}'
+      labels:
+        app: '{{.app}}'
+        tier: '{{.tier}}'
+        categoria: '{{.categoria}}'
     spec:
       project: "my-project"
       source:
         repoURL: https://github.com/example/apps.git
         targetRevision: HEAD
-        path: apps/{{.tier}}/des/{{.cluster}}
+        path: apps/{{.tier}}/{{.categoria}}/{{.app}}
       destination:
         server: '{{.url}}'
         namespace: '{{.cluster}}'`;
@@ -401,16 +416,21 @@ function renderRenderedTemplates(rendered) {
 }
 
 // ─── Render Visualization Tree ───────────────────────────
-function renderVisualization(data) {
+async function renderVisualization(data) {
   const container = document.getElementById('visualContent');
   if (!container) return;
   container.innerHTML = '<div class="generator-tree"></div>';
   const tree = container.querySelector('.generator-tree');
   try {
-    if (typeof yaml === 'undefined') { tree.innerHTML = '<p style="color:var(--text-muted)">Biblioteca YAML não carregada.</p>'; return; }
-    const doc = yaml.load(document.getElementById('yamlEditor').value);
-    if (!doc || !doc.spec) { tree.innerHTML = '<p style="color:var(--text-muted)">YAML inválido ou incompleto para visualização.</p>'; return; }
-    const gens = doc.spec.generators || [];
+    // Parse YAML server-side to avoid CDN dependency
+    const res = await fetch('/api/parse-yaml', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ yaml: document.getElementById('yamlEditor').value })
+    });
+    if (!res.ok) { tree.innerHTML = '<p style="color:var(--text-muted)">Erro ao processar YAML.</p>'; return; }
+    const parsed = await res.json();
+    const gens = parsed.generators || [];
     let html = '<div style="text-align:center;margin-bottom:1rem;font-size:0.8rem;color:var(--text-muted)">'
       + `🔄 <strong>${data.count}</strong> apps via <strong>${data.types.join(', ')}</strong></div>`;
     html += genTree(gens, data.parameters);
